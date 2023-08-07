@@ -53,6 +53,7 @@ class PerlModule(ExtensionEasyBlock, ConfigureMake):
             'extensions_prebuildopts': [None, "prebuildopts specific to extensions", CUSTOM],
             'extensions_installopts': [None, "installopts specific to extensions", CUSTOM],
             'extensions_preinstallopts': [None, "preinstallopts specific to extensions", CUSTOM],
+            'prefix_opt': [None, "Option to use to specify installation prefix", CUSTOM],
         }
         return ExtensionEasyBlock.extra_options(extra_vars)
 
@@ -72,14 +73,20 @@ class PerlModule(ExtensionEasyBlock, ConfigureMake):
             if self.cfg['extensions_' + var] is not None:
                 self.cfg[var] = self.cfg['extensions_' + var]
 
+        prefix_opt = self.cfg.get('prefix_opt')
+
         # Perl modules have two possible installation procedures: using Makefile.PL and Build.PL
         # configure, build, test, install
         if os.path.exists('Makefile.PL'):
+
+            if prefix_opt is None:
+                prefix_opt = 'PREFIX'
+
             install_cmd = ' '.join([
                 self.cfg['preconfigopts'],
                 'perl',
                 'Makefile.PL',
-                'PREFIX=%s' % self.installdir,
+                '%s=%s' % (prefix_opt, self.installdir),
                 self.cfg['configopts'],
             ])
             run_cmd(install_cmd)
@@ -89,11 +96,15 @@ class PerlModule(ExtensionEasyBlock, ConfigureMake):
             ConfigureMake.install_step(self)
 
         elif os.path.exists('Build.PL'):
+
+            if prefix_opt is None:
+                prefix_opt = '--prefix'
+
             install_cmd = ' '.join([
                 self.cfg['preconfigopts'],
                 'perl',
                 'Build.PL',
-                '--prefix',
+                prefix_opt,
                 self.installdir,
                 self.cfg['configopts'],
             ])
