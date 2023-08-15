@@ -53,7 +53,7 @@ class PerlModule(ExtensionEasyBlock, ConfigureMake):
             'extensions_prebuildopts': [None, "prebuildopts specific to extensions", CUSTOM],
             'extensions_installopts': [None, "installopts specific to extensions", CUSTOM],
             'extensions_preinstallopts': [None, "preinstallopts specific to extensions", CUSTOM],
-            'prefix_opt': [None, "Option to use to specify installation prefix", CUSTOM],
+            'prefix_opt': [None, "String to use for option to set installation prefix (default is 'PREFIX')", CUSTOM],
         }
         return ExtensionEasyBlock.extra_options(extra_vars)
 
