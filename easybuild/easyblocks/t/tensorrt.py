@@ -68,11 +68,6 @@ class EB_TensorRT(PythonPackage, Binary):
         # Setup for the extensions step
         self.cfg['exts_defaultclass'] = 'PythonPackage'
 
-        self.cfg['exts_default_options'] = {
-            'download_dep_fail': True,
-            'use_pip': True,
-        }
-
     def configure_step(self):
         """Custom configuration procedure for TensorRT."""
         pass
