@@ -36,8 +36,9 @@ from easybuild.framework.extensioneasyblock import ExtensionEasyBlock
 from easybuild.tools.build_log import EasyBuildError
 from easybuild.tools.filetools import copy_file
 from easybuild.tools.modules import get_software_root
-from easybuild.tools.run import run_cmd
+from easybuild.tools.run import run_shell_cmd
 from easybuild.easyblocks.ruby import EB_Ruby
+
 
 class RubyGem(ExtensionEasyBlock):
     """Builds and installs Ruby Gems."""
@@ -113,7 +114,7 @@ class RubyGem(ExtensionEasyBlock):
             env.setvar('GEM_HOME', self.installdir)
 
         bindir = os.path.join(self.installdir, 'bin')
-        run_cmd("gem install --bindir %s --local %s" % (bindir, self.ext_src))
+        run_shell_cmd("gem install --bindir %s --local %s" % (bindir, self.ext_src))
 
     def make_module_extra(self):
         """Extend $GEM_PATH in module file."""
