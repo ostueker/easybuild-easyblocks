@@ -773,9 +773,9 @@ class PythonPackage(ExtensionEasyBlock):
         if self._should_unpack_source():
             super(PythonPackage, self).extract_step()
 
-    def prerun(self):
+    def pre_install_extension(self):
         """Prepare for installing Python package."""
-        super(PythonPackage, self).prerun()
+        super(PythonPackage, self).pre_install_extension()
         self.prepare_python()
 
     def prepare_step(self, *args, **kwargs):
@@ -1016,12 +1016,12 @@ class PythonPackage(ExtensionEasyBlock):
         return super(PythonPackage, self).make_module_description()
 
 
-    def run(self, *args, **kwargs):
+    def install_extension(self, *args, **kwargs):
         """Perform the actual Python package build/installation procedure"""
 
         # we unpack unless explicitly told otherwise
         kwargs.setdefault('unpack_src', self._should_unpack_source())
-        super(PythonPackage, self).run(*args, **kwargs)
+        super(PythonPackage, self).install_extension(*args, **kwargs)
 
         # configure, build, test, install
         # See EasyBlock.get_steps
