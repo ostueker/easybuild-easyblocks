@@ -82,7 +82,7 @@ class EB_QuantumESPRESSO(ConfigureMake):
         allowed_toolchains = [toolchain.INTELCOMP, toolchain.GCC]
         if comp_fam not in allowed_toolchains:
             raise EasyBuildError(f"EasyBuild does not yet have support for QuantumESPRESSO with toolchain {comp_fam}")
-            
+
         if LooseVersion(self.version) >= LooseVersion("6.1"):
             if comp_fam == toolchain.INTELCOMP:
                 self._dflags += ["-D__INTEL_COMPILER"]
@@ -125,7 +125,7 @@ class EB_QuantumESPRESSO(ConfigureMake):
         if not self.cfg['with_scalapack']:
             self.cfg.update('configopts', '--without-scalapack')
             return
-            
+
         if comp_fam == toolchain.INTELCOMP:
             if get_software_root("impi") and get_software_root("imkl"):
                 if LooseVersion(self.version) >= LooseVersion("6.2"):
@@ -150,7 +150,7 @@ class EB_QuantumESPRESSO(ConfigureMake):
         libxc = get_software_root("libxc")
         if not libxc:
             return
-        
+
         libxc_v = get_software_version("libxc")
         if LooseVersion(libxc_v) < LooseVersion("3.0.1"):
             raise EasyBuildError("Must use libxc >= 3.0.1")
@@ -166,7 +166,6 @@ class EB_QuantumESPRESSO(ConfigureMake):
             self.cfg.update('configopts', f'--with-libxc-prefix={libxc}')
         else:
             self.extra_libs.append(" -lxcf90 -lxc")
-            
 
         self._dflags += ["-D__LIBXC"]
 
