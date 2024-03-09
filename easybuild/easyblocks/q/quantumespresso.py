@@ -595,7 +595,7 @@ class EB_QuantumESPRESSO(ConfigureMake):
         failures = []
         for target in targets:
             pcmd = ''
-            if LooseVersion(self.version) < LooseVersion("7.0"):
+            if LooseVersion(self.version) < LooseVersion("7.2"):
                 if parallel > 1:
                     target = target + "-parallel"
                 else:
