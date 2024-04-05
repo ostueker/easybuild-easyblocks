@@ -232,7 +232,7 @@ class EB_GROMACS(CMakeMake):
             cp2k_root = None
 
         if cp2k_root:
-            if LooseVersion(self.version) < LooseVersion('2022'):
+            if gromacs_version < LooseVersion('2022'):
                 msg = 'CP2K support is only available for GROMACS 2022 and newer.'
                 raise EasyBuildError(msg)
             elif LooseVersion(get_software_version('CP2K')) < LooseVersion('8.1'):
@@ -403,6 +403,7 @@ class EB_GROMACS(CMakeMake):
                         if gromacs_version >= '2021':
                             # For find_package(Python3) - Ignore virtual envs
                             self.cfg.update('configopts', "-DPython3_FIND_VIRTUALENV=STANDARD")
+
 
             # Now patch GROMACS for PLUMED before cmake
             if plumed_root:
