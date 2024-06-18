@@ -42,6 +42,7 @@ import re
 import shutil
 import stat
 import tempfile
+import textwrap
 from easybuild.tools import LooseVersion
 
 import easybuild.tools.environment as env
