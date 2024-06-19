@@ -160,10 +160,11 @@ class EB_ESMF(ConfigureMake):
         """Add install path to PYTHONPATH or EBPYTHONPREFIXES"""
         txt = super(EB_ESMF, self).make_module_extra()
 
-        # this is at least needed for ESMF 8.4.0's python bindings, but there is probably no harm
-        # in setting it in general
-        txt += self.module_generator.set_environment("ESMFMKFILE",
-                                                     os.path.join(self.installdir, "lib", "esmf.mk"))
+        # set environment variable ESMFMKFILE
+        # see section 9.9 in https://earthsystemmodeling.org/docs/release/latest/ESMF_usrdoc/node10.html
+        esmf_mkfile_path = os.path.join(self.installdir, "lib", "esmf.mk")
+        txt += self.module_generator.set_environment('ESMFMKFILE', esmf_mkfile_path)
+
         if self.cfg['multi_deps'] and 'Python' in self.cfg['multi_deps']:
             txt += self.module_generator.prepend_paths('EBPYTHONPREFIXES', '')
         else:
@@ -185,7 +186,7 @@ class EB_ESMF(ConfigureMake):
             binaries = ['ESMF_PrintInfo', 'ESMF_PrintInfoC', 'ESMF_Regrid', 'ESMF_RegridWeightGen',
                         'ESMF_Scrip2Unstruct', 'ESMF_WebServController']
 
-        libs = ['libesmf.a', 'libesmf.%s' % get_shared_lib_ext()]
+        libs = ['esmf.mk', 'libesmf.a', 'libesmf.%s' % get_shared_lib_ext()]
         custom_paths = {
             'files': [os.path.join('bin', x) for x in binaries] + [os.path.join('lib', x) for x in libs],
             'dirs': ['include', 'mod'],
