@@ -590,16 +590,18 @@ class PythonPackage(ExtensionEasyBlock):
                 req_py_minver = sys.version_info[1]
 
             # if using system Python, go hunting for a 'python' command that satisfies the requirements
-            python = pick_python_cmd(req_maj_ver=req_py_majver, req_min_ver=req_py_minver)
+            python = pick_python_cmd(req_maj_ver=req_py_majver, req_min_ver=req_py_minver,
+                                     max_py_majver=max_py_majver, max_py_minver)
 
         if python:
             self.python_cmd = python
             self.log.info("Python command being used: %s", self.python_cmd)
         elif self.require_python:
-            if req_py_majver is not None or req_py_minver is not None:
+            if req_py_majver is not None or req_py_minver is not None or max_py_majver is not None or max_py_minver is not None:
                 raise EasyBuildError(
                     "Failed to pick python command that satisfies requirements in the EasyConfigs "
-                    "(req_py_majver = %s, req_py_minver = %s)", req_py_majver, req_py_minver
+                    "(req_py_majver = %s, req_py_minver = %s, max_py_majver = %s, max_py_minver = %s)"
+                    , req_py_majver, req_py_minver, max_py_majver, max_py_minver
                 )
             else:
                 raise EasyBuildError("Failed to pick Python command to use")
