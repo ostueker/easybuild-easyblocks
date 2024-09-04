@@ -589,9 +589,13 @@ class PythonPackage(ExtensionEasyBlock):
             if req_py_minver is None:
                 req_py_minver = sys.version_info[1]
 
+            # Get the max_py_majver and max_py_minver from the config
+            max_py_majver = self.cfg['max_py_majver']
+            max_py_minver = self.cfg['max_py_minver']
+
             # if using system Python, go hunting for a 'python' command that satisfies the requirements
             python = pick_python_cmd(req_maj_ver=req_py_majver, req_min_ver=req_py_minver,
-                                     max_py_majver=max_py_majver, max_py_minver)
+                                     max_py_majver=max_py_majver, max_py_minver=max_py_minver)
 
         if python:
             self.python_cmd = python
