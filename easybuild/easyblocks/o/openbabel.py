@@ -33,7 +33,6 @@ import glob
 import os
 
 from easybuild.easyblocks.generic.cmakemake import CMakeMake
-from easybuild.easyblocks.generic.pythonpackage import det_pylibdir
 from easybuild.framework.easyconfig import CUSTOM
 from easybuild.tools.build_log import EasyBuildError
 from easybuild.tools.modules import get_software_root, get_software_version
