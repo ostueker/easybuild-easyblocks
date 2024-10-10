@@ -567,11 +567,7 @@ class PythonPackage(ExtensionEasyBlock):
     def prepare_python(self):
         """Python-specific preparations."""
 
-        self.python_cmd = find_python_cmd(self.log,
-                                          self.cfg['req_py_majver'], self.cfg['req_py_minver'],
-                                          max_py_majver=self.cfg['max_py_majver'],
-                                          max_py_minver=self.cfg['max_py_minver'],
-                                          required=self.require_python)
+        self.python_cmd = find_python_cmd_from_ec(self.log, self.cfg, self.require_python)
 
         if self.python_cmd:
             # set Python lib directories
