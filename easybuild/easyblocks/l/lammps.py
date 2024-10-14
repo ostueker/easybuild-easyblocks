@@ -289,11 +289,6 @@ class EB_LAMMPS(CMakeMake):
         """Custom configuration procedure for LAMMPS."""
 
         configopts_easyconfig = self.cfg['configopts']
-
-        # DEBUG
-        print("Is there anything more here in the configure step: ", dir(self))
-        # DEBUG
-
         if not get_software_root('VTK'):
             if self.cfg['user_packages']:
                 self.cfg['user_packages'] = [x for x in self.cfg['user_packages'] if x != 'VTK']
