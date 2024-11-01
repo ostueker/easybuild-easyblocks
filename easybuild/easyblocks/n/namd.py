@@ -1,7 +1,7 @@
 ##
 # This file is an EasyBuild reciPY as per https://github.com/easybuilders/easybuild
 #
-# Copyright:: Copyright 2013-2023 CaSToRC, The Cyprus Institute
+# Copyright:: Copyright 2013-2024 CaSToRC, The Cyprus Institute
 # Authors::   George Tsouloupas <g.tsouloupas@cyi.ac.cy>
 # License::   MIT/GPL
 # $Id$
@@ -17,7 +17,7 @@ import glob
 import os
 import re
 import shutil
-from distutils.version import LooseVersion
+from easybuild.tools import LooseVersion
 
 import easybuild.tools.toolchain as toolchain
 from easybuild.easyblocks.generic.makecp import MakeCp
@@ -80,26 +80,18 @@ class EB_NAMD(MakeCp):
         super(EB_NAMD, self).extract_step()
 
         change_dir(self.src[0]['finalpath'])
-        # check if the sources easyconfig parameter provided an alternative charm, which has been unpacked here already
-        charm_subdirs = glob.glob(os.path.join('..', 'charm-*'))
-        if len(charm_subdirs) == 1:
-            # NAMD looks for a subdirectory named "charm" when configuring, so we symlink the provided unpacked tarball
-            os.symlink(charm_subdirs[0], 'charm')
-            self.charm_subdir = 'charm'
-        else:
-            charm_tarballs = glob.glob('charm-*.tar')
-            if len(charm_tarballs) != 1:
-                raise EasyBuildError("Expected to find exactly one tarball for Charm++, found: %s", charm_tarballs)
+        self.charm_tarballs = glob.glob('charm-*.tar')
+        if len(self.charm_tarballs) != 1:
+            raise EasyBuildError("Expected to find exactly one tarball for Charm++, found: %s", self.charm_tarballs)
 
-            srcdir = extract_file(charm_tarballs[0], os.getcwd(), change_into_dir=False)
-            change_dir(srcdir)
-            self.charm_subdir = '.'.join(os.path.basename(charm_tarballs[0]).split('.')[:-1])
+        srcdir = extract_file(self.charm_tarballs[0], os.getcwd(), change_into_dir=False)
+        change_dir(srcdir)
 
     def patch_step(self, *args, **kwargs):
         """Patch scripts to avoid using hardcoded /bin/csh."""
         super(EB_NAMD, self).patch_step(*args, **kwargs)
 
-        self.charm_dir = self.charm_subdir
+        self.charm_dir = self.charm_tarballs[0][:-4]
 
         # NAMD-3.0 depends on charm-8.0.0 that uses Automake. The 'configure' file was
         # removed in favour of 'configure.ac'
@@ -108,7 +100,6 @@ class EB_NAMD(MakeCp):
             configure_file_name = 'configure.ac'
 
         charm_config = os.path.join(self.charm_dir, 'src', 'scripts', configure_file_name)
-        
         apply_regex_substitutions(charm_config, [(r'SHELL=/bin/csh', 'SHELL=$(which csh)')])
 
         for csh_script in [os.path.join('plugins', 'import_tree'), os.path.join('psfgen', 'import_tree'),
@@ -149,21 +140,25 @@ class EB_NAMD(MakeCp):
         self.namd_arch = '%s-%s' % (self.cfg['namd_basearch'], namd_comp)
         self.log.info("Completed NAMD target architecture: %s", self.namd_arch)
 
-        cmd = "./build charm++ %(arch)s %(opts)s --with-numa -j%(parallel)s '%(cxxflags)s'" % {
+        build_cmd = './build'
+
+        cmd = "%(build_cmd)s charm++ %(arch)s %(opts)s --with-numa -j%(parallel)s '%(cxxflags)s'" % {
+            'build_cmd': build_cmd,
             'arch': self.cfg['charm_arch'],
             'cxxflags': os.environ['CXXFLAGS'] + ' -DMPICH_IGNORE_CXX_SEEK ' + self.cfg['charm_extra_cxxflags'],
             'opts': self.cfg['charm_opts'],
             'parallel': self.cfg['parallel'],
         }
-        self.log.debug("Building Charm++ using cmd '%s' in '%s'" % (cmd, self.charm_subdir))
-        run_cmd(cmd, path=self.charm_subdir)
+        charm_subdir = '.'.join(os.path.basename(self.charm_tarballs[0]).split('.')[:-1])
+        self.log.debug("Building Charm++ using cmd '%s' in '%s'" % (cmd, charm_subdir))
+        run_cmd(cmd, path=charm_subdir)
 
         # compiler (options)
         self.cfg.update('namd_cfg_opts', '--cc "%s" --cc-opts "%s"' % (os.environ['CC'], os.environ['CFLAGS']))
         cxxflags = os.environ['CXXFLAGS']
         if LooseVersion(self.version) >= LooseVersion('2.12'):
             cxxflags += ' --std=c++11'
-        self.cfg.update('namd_cfg_opts', '--cxx "%s" --cxx-opts "%s" --cxx-noalias-opts "%s -fno-alias"' % (os.environ['CXX'], cxxflags, cxxflags))
+        self.cfg.update('namd_cfg_opts', '--cxx "%s" --cxx-opts "%s"' % (os.environ['CXX'], cxxflags))
 
         # NAMD dependencies: CUDA, TCL, FFTW
         cuda = get_software_root('CUDA')
@@ -175,12 +170,9 @@ class EB_NAMD(MakeCp):
             raise EasyBuildError("CUDA is not a dependency, but support for CUDA is enabled.")
 
         tcl = get_software_root('Tcl')
-        if not tcl and build_option('sysroot'):
-            tcl = os.path.join(build_option('sysroot'), 'usr')
-        out, ec = run_cmd("echo 'puts $tcl_version;exit 0' | tclsh", simple=False)
-        if tcl and ec == 0:
+        if tcl:
             self.cfg.update('namd_cfg_opts', '--with-tcl --tcl-prefix %s' % tcl)
-            tclversion = out.strip()
+            tclversion = '.'.join(get_software_version('Tcl').split('.')[0:2])
             tclv_subs = [(r'-ltcl[\d.]*\s', '-ltcl%s ' % tclversion)]
 
             apply_regex_substitutions(os.path.join('arch', '%s.tcl' % self.cfg['namd_basearch']), tclv_subs)
