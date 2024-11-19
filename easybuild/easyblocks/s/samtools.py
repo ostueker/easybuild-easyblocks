@@ -20,7 +20,7 @@ EasyBuild support for building SAMtools (SAM - Sequence Alignment/Map), implemen
 @author: Kenneth Hoste (Ghent University)
 @author: Ali Kerrache (Uni. of Manitoba)
 """
-from distutils.version import LooseVersion
+from easybuild.tools import LooseVersion
 import glob
 import os
 import stat

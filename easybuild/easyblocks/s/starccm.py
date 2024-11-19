@@ -27,7 +27,7 @@ EasyBuild support for installing STAR-CCM+, implemented as an easyblock
 
 @author: Maxime Boissonneault (Compute Canada, Laval University)
 """
-from distutils.version import LooseVersion
+from easybuild.tools import LooseVersion
 import os
 import stat
 

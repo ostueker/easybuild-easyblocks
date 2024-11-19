@@ -37,7 +37,7 @@ from easybuild.easyblocks.generic.binary import Binary
 from easybuild.framework.easyblock import EasyBlock
 from easybuild.tools.build_log import EasyBuildError
 from easybuild.tools.run import run_cmd
-from distutils.version import LooseVersion
+from easybuild.tools import LooseVersion
 from easybuild.tools.filetools import apply_patch
 
 class EB_CST(Binary):

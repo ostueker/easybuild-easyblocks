@@ -33,7 +33,7 @@ import os
 import re
 import sys
 
-from distutils.version import LooseVersion
+from easybuild.tools import LooseVersion
 
 from easybuild.easyblocks.wrf import EB_WRF
 from easybuild.tools.build_log import EasyBuildError

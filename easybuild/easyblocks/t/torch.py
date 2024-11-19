@@ -30,7 +30,7 @@ EasyBuild support for Torch, implemented as an easyblock
 import os
 import re
 
-from distutils.version import LooseVersion
+from easybuild.tools import LooseVersion
 
 import easybuild.tools.toolchain as toolchain
 import easybuild.tools.environment as env
