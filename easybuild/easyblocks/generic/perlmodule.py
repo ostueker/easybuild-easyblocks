@@ -159,4 +159,3 @@ class PerlModule(ExtensionEasyBlock, ConfigureMake):
         setattr(self.module_load_environment, perl_lib_var, ['', sitearchsuffix, sitelibsuffix])
 
         return super().make_module_step(*args, **kwargs)
-
