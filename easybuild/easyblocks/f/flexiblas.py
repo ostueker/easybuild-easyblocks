@@ -99,7 +99,7 @@ class EB_FlexiBLAS(CMakeMake):
 
         supported_blas_libs = ['BLIS', 'NETLIB',
                                'AOCL-BLAS', 'OpenBLAS', 'imkl']
-
+        
         # make sure that default backend is a supported library
         flexiblas_default = configopts['FLEXIBLAS_DEFAULT']
         if flexiblas_default not in supported_blas_libs:
@@ -137,11 +137,10 @@ class EB_FlexiBLAS(CMakeMake):
                     configopts[key] = mkl_compiler_mapping[comp_family]
                 except KeyError:
                     raise EasyBuildError("Compiler family not supported yet: %s", comp_family)
+            elif blas_lib == 'AOCL_mt':
+                configopts[key] = 'blis-mt'
             else:
-                if blas_lib == 'AOCL_mt':
-                    configopts[key] = 'blis-mt'
-                else:
-                    configopts[key] = blas_lib.lower()
+                configopts[key] = blas_lib.lower()
 
         # only add configure options to configopts easyconfig parameter if they're not defined yet,
         # to allow easyconfig to override specifies settings
@@ -235,12 +234,3 @@ class EB_FlexiBLAS(CMakeMake):
             custom_commands.append("flexiblas list | grep %s" % blas_lib.upper())
 
         super(EB_FlexiBLAS, self).sanity_check_step(custom_paths=custom_paths, custom_commands=custom_commands)
-
-    def make_module_req_guess(self):
-        """Customize CPATH for FlexiBLAS."""
-
-        guesses = super(EB_FlexiBLAS, self).make_module_req_guess()
-
-        guesses.update({'CPATH': [os.path.join('include', 'flexiblas')]})
-
-        return guesses
