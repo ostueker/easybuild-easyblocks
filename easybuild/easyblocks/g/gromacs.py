@@ -770,7 +770,7 @@ class EB_GROMACS(CMakeMake):
 
         custom_paths = {
             'files': [os.path.join('bin', b) for b in bin_files],
-            'dirs': dirs
+            'dirs': dirs,
         }
 
         if self.cfg['build_shared_libs'] or LooseVersion(self.version) <= LooseVersion('2022'):
