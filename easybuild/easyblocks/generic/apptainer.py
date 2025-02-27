@@ -35,6 +35,8 @@ import re
 from easybuild.easyblocks.generic.binary import Binary
 from easybuild.framework.easyconfig import CUSTOM
 from easybuild.tools.build_log import EasyBuildError
+from easybuild.tools.filetools import apply_regex_substitutions
+from easybuild.tools.filetools import copy_file, mkdir
 
 DEFAULT_INSTALL_CMD = "/bin/sudo -iu containeruser build_container_image.sh -t sandbox "
 class Apptainer(Binary):
@@ -92,6 +94,21 @@ class Apptainer(Binary):
 
         # Generate module
         res = super(Apptainer, self).make_module_step(fake=fake)
+
+
+        # create a secondary module
+        modname = os.path.basename(os.path.dirname(self.mod_filepath))
+        modversion = os.path.basename(self.mod_filepath)
+
+        secondary_module_path = os.path.join(os.path.dirname(os.path.dirname(self.cfg['container_path'])), 'modules', modname)
+        # create module directory if it does not exist
+        mkdir(secondary_module_path)
+        copy_file(self.mod_filepath, secondary_module_path)
+        secondary_module = os.path.join(secondary_module_path, modversion)
+
+        # remove depends_on("apptainer.*") for this module
+        regex_subs = [(r'depends_on\("apptainer.*"\)', r'')]
+        apply_regex_substitutions(secondary_module, regex_subs)
 
         # Reset installdir to EasyBuild values
         self.installdir = self.orig_installdir
