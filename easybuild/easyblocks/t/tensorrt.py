@@ -59,7 +59,7 @@ class EB_TensorRT(PythonPackage, Binary):
 
     def __init__(self, *args, **kwargs):
         """Initialize TensorRT easyblock."""
-        super(EB_TensorRT, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Setup for the Binary easyblock
         self.cfg['extract_sources'] = True
@@ -89,7 +89,7 @@ class EB_TensorRT(PythonPackage, Binary):
     def extensions_step(self):
         """Custom extensions procedure for TensorRT."""
 
-        super(EB_TensorRT, self).extensions_step()
+        super().extensions_step()
 
         pyver = ''.join(get_software_version('Python').split('.')[:2])
         whlver = '.'.join(self.version.split('.')[:2])
@@ -138,6 +138,6 @@ class EB_TensorRT(PythonPackage, Binary):
             "python -c 'import tensorrt'",
         ]
 
-        res = super(EB_TensorRT, self).sanity_check_step(custom_paths=custom_paths, custom_commands=custom_commands)
+        res = super().sanity_check_step(custom_paths=custom_paths, custom_commands=custom_commands)
 
         return res

@@ -59,7 +59,7 @@ class EB_CGAL(CMakeMake):
         if get_software_root('Boost'):
             os.environ['BOOST_ROOT'] = get_software_root('Boost')
 
-        super(EB_CGAL, self).configure_step()
+        super().configure_step()
 
     def sanity_check_step(self):
         """Custom sanity check for CGAL."""
@@ -75,4 +75,4 @@ class EB_CGAL(CMakeMake):
             'files': [os.path.join('bin', 'cgal_%s') % x for x in ['create_cmake_script', 'make_macosx_app']] + libs,
             'dirs': dirs,
         }
-        super(EB_CGAL, self).sanity_check_step(custom_paths=custom_paths)
+        super().sanity_check_step(custom_paths=custom_paths)
