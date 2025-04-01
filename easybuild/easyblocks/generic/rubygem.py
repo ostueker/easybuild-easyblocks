@@ -54,7 +54,7 @@ class RubyGem(ExtensionEasyBlock):
 
     def __init__(self, *args, **kwargs):
         """RubyGem easyblock constructor."""
-        super(RubyGem, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.ext_src = None
 
     def install_extension(self):
@@ -62,7 +62,7 @@ class RubyGem(ExtensionEasyBlock):
         if not self.src:
             raise EasyBuildError("No source found for Ruby Gem %s, required for installation.", self.name)
 
-        super(RubyGem, self).install_extension()
+        super().install_extension()
 
         self.ext_src = self.src
         self.log.debug("Installing Ruby gem %s version %s." % (self.name, self.version))
@@ -81,7 +81,7 @@ class RubyGem(ExtensionEasyBlock):
                 src['finalpath'] = self.builddir
             else:
                 # unpack zipped gems, use specified path to gem file
-                super(RubyGem, self).extract_step()
+                super().extract_step()
 
     def configure_step(self):
         """No separate configuration for Ruby Gems."""
@@ -137,7 +137,7 @@ class RubyGem(ExtensionEasyBlock):
 
     def make_module_extra(self):
         """Extend $GEM_PATH in module file."""
-        txt = super(RubyGem, self).make_module_extra()
+        txt = super().make_module_extra()
         # for stand-alone Ruby gem installs, $GEM_PATH needs to be updated
         if not hasattr(self, 'master') or not isinstance(self.master, EB_Ruby):
             txt += self.module_generator.prepend_paths('GEM_PATH', [''])
