@@ -82,7 +82,7 @@ def det_python_version(python_cmd):
     return res.output.strip()
 
 
-def pick_python_cmd(req_maj_ver=None, req_min_ver=None):
+def pick_python_cmd(req_maj_ver=None, req_min_ver=None, max_py_majver=None, max_py_minver=None):
     """
     Pick 'python' command to use, based on specified version requirements.
     If the major version is specified, it must be an exact match (==).
@@ -110,13 +110,13 @@ def pick_python_cmd(req_maj_ver=None, req_min_ver=None):
                 log.debug(f"Python command '{python_cmd}' not available through $PATH")
                 return False
 
+        pyver = det_python_version(python_cmd)
+
         if req_maj_ver is not None:
             if req_min_ver is None:
                 req_majmin_ver = '%s.0' % req_maj_ver
             else:
                 req_majmin_ver = '%s.%s' % (req_maj_ver, req_min_ver)
-
-            pyver = det_python_version(python_cmd)
 
             # (strict) check for major version
             maj_ver = pyver.split('.')[0]
@@ -127,6 +127,18 @@ def pick_python_cmd(req_maj_ver=None, req_min_ver=None):
             # check for minimal minor version
             if LooseVersion(pyver) < LooseVersion(req_majmin_ver):
                 log.debug(f"Minimal requirement for minor Python version not satisfied: {pyver} vs {req_majmin_ver}")
+                return False
+
+        if max_py_majver is not None:
+            if max_py_minver is None:
+                max_majmin_ver = '%s.0' % max_py_majver
+            else:
+                max_majmin_ver = '%s.%s' % (max_py_majver, max_py_minver)
+
+            if LooseVersion(pyver) > LooseVersion(max_majmin_ver):
+                log.debug("Python version (%s) on the system is newer than the maximum supported "
+                          "Python version specified in the easyconfig (%s)",
+                          pyver, max_majmin_ver)
                 return False
 
         # all check passed
@@ -158,6 +170,60 @@ def pick_python_cmd(req_maj_ver=None, req_min_ver=None):
                       f"(maj: {req_maj_ver}, min: {req_min_ver}), moving on")
 
     return res
+
+
+def find_python_cmd(log, req_py_majver, req_py_minver, max_py_majver, max_py_minver, required):
+    """Return an appropriate python command to use.
+
+    When python is a dependency use the full path to that.
+    Else use req_py_maj/minver (defaulting to the Python being used in this EasyBuild session) to select one.
+    If no (matching) python command is found and raise an Error or log a warning depending on the required argument.
+    """
+    python = None
+    python_root = get_software_root('Python')
+    # keep in mind that Python may be listed as an allowed system dependency,
+    # so just checking Python root is not sufficient
+    if python_root:
+        bin_python = os.path.join(python_root, 'bin', 'python')
+        if os.path.exists(bin_python) and os.path.samefile(which('python'), bin_python):
+            # if Python is listed as a (build) dependency, use 'python' command provided that way
+            python = bin_python
+            log.debug("Retaining 'python' command for Python dependency: " + python)
+
+    if python is None:
+        # if no Python version requirements are specified,
+        # use major/minor version of Python being used in this EasyBuild session
+        if req_py_majver is None:
+            req_py_majver = sys.version_info[0]
+        if req_py_minver is None:
+            req_py_minver = sys.version_info[1]
+        # if using system Python, go hunting for a 'python' command that satisfies the requirements
+        python = pick_python_cmd(req_maj_ver=req_py_majver, req_min_ver=req_py_minver,
+                                 max_py_majver=max_py_majver, max_py_minver=max_py_minver)
+
+    if python:
+        log.info("Python command being used: " + python)
+    elif required:
+        if all(v is None for v in (req_py_majver, req_py_minver, max_py_majver, max_py_minver)):
+            error_msg = "Failed to pick Python command to use"
+        else:
+            error_msg = (f"Failed to pick Python command that satisfies requirements in the easyconfig: "
+                         f"req_py_majver = {req_py_majver}, req_py_minver = {req_py_minver}")
+            if max_py_majver is not None:
+                error_msg += f"max_py_majver = {max_py_majver}, max_py_minver = {max_py_minver}"
+        raise EasyBuildError(error_msg)
+    else:
+        log.warning("No Python command found!")
+    return python
+
+
+def find_python_cmd_from_ec(log, cfg, required):
+    """Find a python command using the constraints specified in the EasyConfig"""
+    return find_python_cmd(log,
+                           cfg['req_py_majver'], cfg['req_py_minver'],
+                           max_py_majver=cfg['max_py_majver'],
+                           max_py_minver=cfg['max_py_minver'],
+                           required=required)
 
 
 def det_pylibdir(plat_specific=False, python_cmd=None):
@@ -358,6 +424,8 @@ class PythonPackage(ExtensionEasyBlock):
                                    "the pip version check. Enabled by default when pip_ignore_installed=True", CUSTOM],
             'req_py_majver': [None, "Required major Python version (only relevant when using system Python)", CUSTOM],
             'req_py_minver': [None, "Required minor Python version (only relevant when using system Python)", CUSTOM],
+            'max_py_majver': [None, "Maximum major Python version (only relevant when using system Python)", CUSTOM],
+            'max_py_minver': [None, "Maximum minor Python version (only relevant when using system Python)", CUSTOM],
             'sanity_pip_check': [True, "Run 'python -m pip check' to ensure all required Python packages are "
                                        "installed and check for any package with an invalid (0.0.0) version.", CUSTOM],
             'runtest': [True, "Run unit tests.", CUSTOM],  # overrides default
