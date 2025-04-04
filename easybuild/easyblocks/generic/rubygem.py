@@ -1,5 +1,5 @@
 ##
-# Copyright 2015-2023 Ghent University
+# Copyright 2015-2025 Ghent University
 #
 # This file is part of EasyBuild,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -104,10 +104,10 @@ class RubyGem(ExtensionEasyBlock):
                 gemspec = "%s.gemspec" % self.name
                 gemspec_lower = "%s.gemspec" % self.name.lower()
                 if os.path.exists(gemspec):
-                    run_cmd("gem build %s -o %s.gem" % (gemspec, self.name))
+                    run_shell_cmd("gem build %s -o %s.gem" % (gemspec, self.name))
                     self.ext_src = "%s.gem" % self.name
                 elif os.path.exists(gemspec_lower):
-                    run_cmd("gem build %s -o %s.gem" % (gemspec_lower, self.name.lower()))
+                    run_shell_cmd("gem build %s -o %s.gem" % (gemspec_lower, self.name.lower()))
                     self.ext_src = "%s.gem" % self.name.lower()
                 else:
                     raise EasyBuildError("No gem_file specified and no"
@@ -127,8 +127,12 @@ class RubyGem(ExtensionEasyBlock):
         if not hasattr(self, 'master') or not isinstance(self.master, EB_Ruby):
             env.setvar('GEM_HOME', self.installdir)
 
-        bindir = os.path.join(self.installdir, 'bin')
-        cmd = "%s gem install --bindir %s --local %s" % (self.cfg['preinstallopts'], bindir, self.ext_src)
+        cmd = ' '.join([
+            self.cfg['preinstallopts'],
+            'gem install',
+            '--bindir ' + os.path.join(self.installdir, 'bin'),
+            '--local ' + self.ext_src,
+        ])
         run_shell_cmd(cmd)
 
     def make_module_extra(self):
