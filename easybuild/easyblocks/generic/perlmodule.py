@@ -1,5 +1,5 @@
 ##
-# Copyright 2009-2023 Ghent University
+# Copyright 2009-2025 Ghent University
 #
 # This file is part of EasyBuild,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -61,7 +61,7 @@ class PerlModule(ExtensionEasyBlock, ConfigureMake):
         """Initialize custom class variables."""
         super(PerlModule, self).__init__(*args, **kwargs)
         self.testcmd = None
-        
+
         # Environment variables PERL_MM_OPT and PERL_MB_OPT cause installations to fail.
         # Therefore it is better to unset these variables.
         unset_env_vars(['PERL_MM_OPT', 'PERL_MB_OPT'])
