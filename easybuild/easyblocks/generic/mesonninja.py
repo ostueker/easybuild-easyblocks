@@ -1,5 +1,5 @@
 ##
-# Copyright 2018-2023 Ghent University
+# Copyright 2018-2025 Ghent University
 #
 # This file is part of EasyBuild,
 # originally created by the HPC team of Ghent University (http://ugent.be/hpc/en),
@@ -39,6 +39,7 @@ from easybuild.tools.run import run_shell_cmd
 DEFAULT_CONFIGURE_CMD = 'meson'
 DEFAULT_BUILD_CMD = 'ninja'
 DEFAULT_INSTALL_CMD = 'ninja'
+
 
 class MesonNinja(EasyBlock):
     """
