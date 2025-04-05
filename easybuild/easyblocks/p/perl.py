@@ -78,7 +78,6 @@ class EB_Perl(ConfigureMake):
 
         majver = self.version.split('.')[0]
         configopts = [
-            self.cfg['configopts'],
             '-Dcc="{0}"'.format(os.getenv('CC')),
             '-Dccflags="{0}"'.format(os.getenv('CFLAGS')) if '-Dccflags' not in self.cfg['configopts'] else '',
             '-Dinc_version_list=none',
@@ -91,7 +90,6 @@ class EB_Perl(ConfigureMake):
             # guarantee that the install directory has the form lib/perlX/
             # see https://github.com/easybuilders/easybuild-easyblocks/issues/1700
             "-Dinstallstyle='lib/perl%s'" % majver,
-            self.cfg['configopts'],
         ]
         if self.cfg['use_perl_threads']:
             configopts.append('-Dusethreads')
@@ -122,7 +120,7 @@ class EB_Perl(ConfigureMake):
         if os.getenv('COLUMNS', None) == '0':
             unset_env_vars(['COLUMNS'])
 
-        cmd = '%s ./Configure -de %s' % (self.cfg['preconfigopts'], configopts)
+        cmd = '%s ./Configure -de %s %s' % (self.cfg['preconfigopts'], configopts, self.cfg['configopts'])
         run_shell_cmd(cmd)
 
     def test_step(self):
