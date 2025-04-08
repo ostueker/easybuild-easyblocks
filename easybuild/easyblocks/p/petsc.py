@@ -327,7 +327,7 @@ class EB_PETSc(ConfigureMake):
                     withdep = "--with-%s" % dep.lower()
                     self.cfg.update('configopts', '%s=1 %s-dir=%s' % (withdep, withdep, deproot))
 
-            cmd = "./config/configure.py %s" % self.cfg['configopts']
+            cmd = "./config/configure.py %s" % self.get_cfg('configopts')
             run_shell_cmd(cmd)
 
         # Make sure to set test_parallel before self.cfg.parallel is set to 1
@@ -367,7 +367,7 @@ class EB_PETSc(ConfigureMake):
         Install using make install (for non-source installations),
         or by symlinking files (old versions, < 3).
         """
-        if LooseVersion(self.version) >= LooseVersion("2"):
+        if LooseVersion(self.version) >= LooseVersion("3"):
             if not self.cfg['sourceinstall']:
                 super(EB_PETSc, self).install_step()
                 petsc_root = self.installdir
@@ -380,7 +380,7 @@ class EB_PETSc(ConfigureMake):
                        r'\1\2\3')
                 apply_regex_substitutions(petsc_variables_path, [fix])
 
-        else:  # old versions (< 2.x)
+        else:  # old versions (< 3.x)
 
             for fn in ['petscconf.h', 'petscconfiginfo.h', 'petscfix.h', 'petscmachineinfo.h']:
                 includedir = os.path.join(self.installdir, 'include')
