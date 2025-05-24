@@ -247,7 +247,7 @@ class EB_LAMMPS(CMakeMake):
 
     def prepare_step(self, *args, **kwargs):
         """Custom prepare step for LAMMPS."""
-        super(EB_LAMMPS, self).prepare_step(*args, **kwargs)
+        super().prepare_step(*args, **kwargs)
 
         # version 1.3.2 is used in the test suite to check easyblock can be initialised
         if self.version != '1.3.2':
@@ -295,14 +295,6 @@ class EB_LAMMPS(CMakeMake):
         if LooseVersion(self.cur_version) >= LooseVersion(translate_lammps_version('2Aug2023')):
             self.kokkos_cpu_mapping['icelake'] = 'ICX'
             self.kokkos_cpu_mapping['sapphirerapids'] = 'SPR'
-
-    def prepare_step(self, *args, **kwargs):
-        """Custom prepare step for LAMMPS."""
-        super().prepare_step(*args, **kwargs)
-
-        # Unset LIBS when using both KOKKOS and CUDA - it will mix lib paths otherwise
-        if self.cfg['kokkos'] and self.cuda:
-            env.unset_env_vars(['LIBS'])
 
     def configure_step(self, **kwargs):
         """Custom configuration procedure for LAMMPS."""
