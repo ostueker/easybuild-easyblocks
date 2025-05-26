@@ -60,7 +60,7 @@ def extract_compiler_version(compiler_name):
     # Intel(R) C Intel(R) 64 Compiler XE for applications running on Intel(R) 64, Version 15.0.1.133 Build 20141023
     version_regex = re.compile(r'\s([0-9]+(?:\.[0-9]+){1,3})\s', re.M)
     if compiler_name.startswith('gcc'):
-        res = run_shell_cmd("gcc --version")
+        res = run_shell_cmd(f"{compiler_name} --version")
         out = res.output
         res = version_regex.search(out)
         if res is None:
