@@ -49,7 +49,7 @@ from easybuild.framework.easyconfig.templates import PYPI_SOURCE
 from easybuild.framework.extensioneasyblock import ExtensionEasyBlock
 from easybuild.tools.build_log import EasyBuildError, print_msg
 from easybuild.tools.config import build_option, PYTHONPATH, EBPYTHONPREFIXES
-from easybuild.tools.filetools import change_dir, mkdir, remove_dir, symlink, which
+from easybuild.tools.filetools import change_dir, mkdir, read_file, remove_dir, symlink, which, write_file
 from easybuild.tools.modules import ModEnvVarType, get_software_root, get_software_version
 from easybuild.tools.run import run_shell_cmd
 from easybuild.tools.utilities import nub
