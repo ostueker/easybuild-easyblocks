@@ -231,6 +231,10 @@ class EB_LAMMPS(CMakeMake):
             self.kokkos_cpu_mapping['a64fx'] = 'A64FX'
             self.kokkos_cpu_mapping['zen4'] = 'ZEN3'
 
+        if LooseVersion(self.cur_version) >= LooseVersion(translate_lammps_version('2Aug2023')):
+            self.kokkos_cpu_mapping['icelake'] = 'ICX'
+            self.kokkos_cpu_mapping['sapphirerapids'] = 'SPR'
+
     @staticmethod
     def extra_options(**kwargs):
         """Custom easyconfig parameters for LAMMPS"""
