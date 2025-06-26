@@ -29,14 +29,10 @@ EasyBuild support for VS VSCode Extensions, implemented as an easyblock
 """
 import os
 
-import easybuild.tools.environment as env
-from easybuild.framework.easyconfig import CUSTOM
 from easybuild.framework.extensioneasyblock import ExtensionEasyBlock
 from easybuild.tools.build_log import EasyBuildError
-from easybuild.tools.filetools import copy_file
 from easybuild.tools.modules import get_software_root
 from easybuild.tools.run import run_shell_cmd
-from easybuild.easyblocks.code_server import EB_code_minus_server
 
 
 class VSCodeExtension(ExtensionEasyBlock):
@@ -70,7 +66,7 @@ class VSCodeExtension(ExtensionEasyBlock):
         pass
 
     def install_step(self):
-        """Install VSCode Extensions using gem package manager"""
+        """Install VSCode Extensions using code-server as package manager"""
         code_server_root = get_software_root('code-server')
         if not code_server_root:
             raise EasyBuildError("code-server module not loaded?")
@@ -89,4 +85,3 @@ class VSCodeExtension(ExtensionEasyBlock):
             '--install-extension ' + src
         ])
         run_shell_cmd(cmd)
-
