@@ -403,7 +403,7 @@ def det_installed_python_packages_with_path(names_only=True, python_cmd=None, pa
         '--format', 'json',
     ])
     if path:
-        cmd += f'--path {path}'
+        cmd += f' --path {path}'
     res = run_shell_cmd(cmd, fail_on_error=False, hidden=True)
     if res.exit_code:
         raise EasyBuildError(f'Failed to determine installed python packages: {res.output}')
