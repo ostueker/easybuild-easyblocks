@@ -32,6 +32,7 @@ EasyBuild support for Python packages, implemented as an easyblock
 @author: Jens Timmerman (Ghent University)
 @author: Alexander Grund (TU Dresden)
 """
+import json
 import os
 import re
 import sys
