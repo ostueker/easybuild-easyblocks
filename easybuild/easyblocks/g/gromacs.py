@@ -70,6 +70,7 @@ class EB_GROMACS(CMakeMake):
             'mpisuffix': ['_mpi', "Suffix to append to MPI-enabled executables (only for GROMACS < 4.6)", CUSTOM],
             'mpiexec': ['mpirun', "MPI executable to use when running tests", CUSTOM],
             'mpiexec_numproc_flag': ['-np', "Flag to introduce the number of MPI tasks when running tests", CUSTOM],
+            'mpi_only': [False, "Only build for MPI and skip nompi.", CUSTOM],
             'mpi_numprocs': [0, "Number of MPI tasks to use when running tests", CUSTOM],
             'ignore_plumed_version_check': [False, "Ignore the version compatibility check for PLUMED", CUSTOM],
             'plumed': [None, "Try to apply PLUMED patches. None (default) is auto-detect. " +
@@ -655,8 +656,12 @@ class EB_GROMACS(CMakeMake):
             else:
                 mpisuff = '_mpi'
 
-            mpi_bins.extend([binary + mpisuff for binary in mpi_bins])
-            mpi_libnames.extend([libname + mpisuff for libname in mpi_libnames])
+            if self.cfg['mpi_only']:
+                mpi_bins = [binary + mpisuff for binary in mpi_bins]
+                mpi_libnames = [libname + mpisuff for libname in mpi_libnames]
+            else:
+                mpi_bins.extend([binary + mpisuff for binary in mpi_bins])
+                mpi_libnames.extend([libname + mpisuff for libname in mpi_libnames])
 
         suffixes = ['']
 
@@ -769,9 +774,12 @@ class EB_GROMACS(CMakeMake):
         if precisions == []:
             raise EasyBuildError("No precision selected. At least one of single/double_precision must be unset or True")
 
-        mpitypes = ['nompi']
-        if self.toolchain.options.get('usempi', None):
-            mpitypes.append('mpi')
+        if self.cfg['mpi_only']:
+            mpitypes = ['mpi']
+        else:
+            mpitypes = ['nompi']
+            if self.toolchain.options.get('usempi', None):
+                mpitypes.append('mpi')
 
         # We need to count the number of variations to build.
         versions_built = []
