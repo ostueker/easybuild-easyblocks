@@ -129,12 +129,13 @@ class EB_FlexiBLAS(CMakeMake):
                 # gnu_thread vs intel_thread links to libgomp vs. libiomp5 for the OpenMP library.
                 mkl_gnu_libs = "mkl_gf_lp64;mkl_gnu_thread;mkl_core;gomp;pthread;m;dl"
                 mkl_intel_libs = "mkl_intel_lp64;mkl_intel_thread;mkl_core;iomp5;pthread;m;dl"
+                mkl_llvm_libs = "mkl_gf_lp64;mkl_intel_thread;mkl_core;iomp5;pthread;m;dl"
                 mkl_compiler_mapping = {
                     toolchain.GCC: mkl_gnu_libs,
                     toolchain.INTELCOMP: mkl_intel_libs,
+                    toolchain.LLVM: mkl_llvm_libs,
                     toolchain.NVHPC: mkl_intel_libs,
                     toolchain.PGI: mkl_intel_libs,
-                    toolchain.SYSTEM: mkl_gnu_libs,
                 }
                 comp_family = self.toolchain.comp_family()
                 try:
@@ -209,10 +210,7 @@ class EB_FlexiBLAS(CMakeMake):
         libs = []
 
         # libraries in lib/
-        if self.toolchain.comp_family() == toolchain.INTELCOMP:
-            top_libs = ['libflexiblas%s.%s' % (x, shlib_ext) for x in ('_intel', '_api', '_mgmt')]
-        else:
-            top_libs = ['libflexiblas%s.%s' % (x, shlib_ext) for x in ('', '_api', '_mgmt')]
+        top_libs = ['libflexiblas%s.%s' % (x, shlib_ext) for x in ('', '_api', '_mgmt')]
         libs.extend(os.path.join('lib', lf) for lf in top_libs)
 
         # libraries in lib/flexiblas/
