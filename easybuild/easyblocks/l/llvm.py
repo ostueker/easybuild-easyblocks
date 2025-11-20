@@ -223,6 +223,7 @@ class EB_LLVM(CMakeMake):
             'disable_werror': [False, "Disable -Werror for all projects", CUSTOM],
             'enable_rtti': [True, "Enable RTTI", CUSTOM],
             'full_llvm': [False, "Build LLVM without any dependency", CUSTOM],
+            'install_libcxx_modules': [None, "Install libstdc++ modules. Default relies on default of build system", CUSTOM],
             'minimal': [False, "Build LLVM only", CUSTOM],
             'python_bindings': [False, "Install python bindings", CUSTOM],
             'skip_all_tests': [False, "Skip running of tests", CUSTOM],
@@ -628,6 +629,11 @@ class EB_LLVM(CMakeMake):
                 self._cmakeopts['LIBOMPTARGET_OMPT_SUPPORT'] = ompt_value
             # OMPT based tools
             self._cmakeopts['OPENMP_ENABLE_OMPT_TOOLS'] = ompt_value
+
+        # Install C++ standard library modules.
+        # Internally disabled by default in LLVM 18, but enabled in LLVM 20.
+        if self.cfg['install_libcxx_modules']:
+            self._cmakeopts['LIBCXX_INSTALL_MODULES'] = 'ON'
 
         if 'flang' in self.final_projects:
             self.remove_unsupported_flang_opts()
