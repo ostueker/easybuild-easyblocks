@@ -633,8 +633,11 @@ class EB_LLVM(CMakeMake):
 
         # Install C++ standard library modules.
         # Internally disabled by default in LLVM 18, but enabled in LLVM 20.
-        if self.cfg['install_libcxx_modules']:
-            self._cmakeopts['LIBCXX_INSTALL_MODULES'] = 'ON'
+        if self.cfg['install_libcxx_modules'] != None:
+            if self.cfg['install_libcxx_modules'] == True:
+                self._cmakeopts['LIBCXX_INSTALL_MODULES'] = 'ON'
+            else:
+                self._cmakeopts['LIBCXX_INSTALL_MODULES'] = 'OFF'
 
         if 'flang' in self.final_projects:
             self.remove_unsupported_flang_opts()
