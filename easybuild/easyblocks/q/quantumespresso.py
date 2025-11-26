@@ -428,7 +428,7 @@ class EB_QuantumESPRESSO(EasyBlock):
                     )
 
             if prev_env_value is not None:
-                env.setvar(env_name, prev_env_value)
+                env.unset_env_vars([env_name])
 
             return out
 
@@ -1171,7 +1171,7 @@ class EB_QuantumESPRESSO(EasyBlock):
                     )
 
             if prev_env_value is not None:
-                env.setvar(env_name, prev_env_value)
+                env.unset_env_vars([env_name])
 
             return full_out
 
