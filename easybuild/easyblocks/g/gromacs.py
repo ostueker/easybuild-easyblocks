@@ -70,10 +70,8 @@ class EB_GROMACS(CMakeMake):
             'mpisuffix': ['_mpi', "Suffix to append to MPI-enabled executables (only for GROMACS < 4.6)", CUSTOM],
             'mpiexec': ['mpirun', "MPI executable to use when running tests", CUSTOM],
             'mpiexec_numproc_flag': ['-np', "Flag to introduce the number of MPI tasks when running tests", CUSTOM],
-            'mpi_only': [False, "Only build for MPI and skip nompi.", CUSTOM],
             'mpi_numprocs': [0, "Number of MPI tasks to use when running tests", CUSTOM],
             'ignore_plumed_version_check': [False, "Ignore the version compatibility check for PLUMED", CUSTOM],
-            'cp2k': [None, "Build with CP2K QM/MM. None is auto-detect. True or False forces behaviour.", CUSTOM],
             'plumed': [None, "Try to apply PLUMED patches. None (default) is auto-detect. " +
                        "True or False forces behaviour.", CUSTOM],
         })
@@ -119,21 +117,9 @@ class EB_GROMACS(CMakeMake):
         # http://manual.gromacs.org/documentation/2018/install-guide/index.html#simd-support
         if 'MIC-AVX512' in optarch and LooseVersion(self.version) >= LooseVersion('2016'):
             res = 'AVX_512_KNL'
-        elif (('AVX512' in optarch or 'MARCH=X86-64-V4' in optarch) and
-                LooseVersion(self.version) >= LooseVersion('2016')):
-            if (LooseVersion(self.version) >= LooseVersion('2019') and
-                    LooseVersion(self.version) < LooseVersion('2023') and
-                    comp_fam == toolchain.GCC and get_software_root('imkl') and
-                    re.search(r'GMX_DOUBLE=(1|ON|YES|TRUE)\b', self.cfg['configopts'].upper())):
-                # Workaround to DOUBLE precision builds being broken for AVX512 in GROMACS 2019.x
-                # and 2020.x  when using toolchains with GCC and MKL.
-                # With GROMACS 2023.3 under StdEnv/2023 the issue is fixed.
-                # TODO: test with GROMACS 2021, 2022 under StdEnv/2020 & 2023 to narrow down further.
-                res = 'AVX2_256'
-                self.log.info("Falling back to AVX2_256 for GROMACS >= 2019 with GMX_DOUBLE=ON.")
-            else:
-                res = 'AVX_512'
-        elif ('AVX2' in optarch or 'MARCH=X86-64-V3' in optarch) and LooseVersion(self.version) >= LooseVersion('5.0'):
+        elif 'AVX512' in optarch and LooseVersion(self.version) >= LooseVersion('2016'):
+            res = 'AVX_512'
+        elif 'AVX2' in optarch and LooseVersion(self.version) >= LooseVersion('5.0'):
             res = 'AVX2_256'
         elif 'AVX' in optarch:
             res = 'AVX_256'
@@ -227,65 +213,6 @@ class EB_GROMACS(CMakeMake):
                 # explicitly disable GPU support if CUDA is not available,
                 # to avoid that GROMACS finds and uses a system-wide CUDA compiler
                 self.cfg.update('configopts', "-DGMX_GPU=OFF")
-
-        # CP2K detection
-        # enable CP2K support if CP2K is listed as a dependency
-        # and CP2K support is either explicitly enabled (cp2k = True) or unspecified ('cp2k' not defined)
-        cp2k_root = get_software_root('CP2K')
-        if self.cfg['cp2k'] and not cp2k_root:
-            msg = "CP2K support has been requested but CP2K is not listed as a dependency."
-            raise EasyBuildError(msg)
-        elif cp2k_root and self.cfg['cp2k'] is False:
-            self.log.info('CP2K was found, but compilation without CP2K has been requested.')
-            cp2k_root = None
-
-        if cp2k_root:
-            if gromacs_version < LooseVersion('2022'):
-                msg = 'CP2K support is only available for GROMACS 2022 and newer.'
-                raise EasyBuildError(msg)
-            elif LooseVersion(get_software_version('CP2K')) < LooseVersion('8.1'):
-                msg = 'CP2K support in GROMACS requires CP2K version 8.1 or higher.'
-                raise EasyBuildError(msg)
-
-            if not self.cfg['mpi_only']:
-                msg = "GROMACS with CP2K support needs to be built with 'mpi_only = True'"
-                raise EasyBuildError(msg)
-
-            if not os.path.exists(os.path.join(cp2k_root, 'lib', 'libcp2k.a')):
-                msg = 'CP2K needs to be compiled with "library = True".'
-                raise EasyBuildError(msg)
-            if not os.path.exists(os.path.join(cp2k_root, 'lib', 'pkgconfig', 'libcp2k.pc')):
-                msg = "pkg-config is required as a build-dependency for CP2K"
-                raise EasyBuildError(msg)
-            if not get_software_root('pkg-config'):
-                msg = "pkg-config is required as a build-dependency for building GROMACS-CP2K"
-                raise EasyBuildError(msg)
-
-            self.log.info('CP2K support has been enabled.')
-            # Building with CP2K requires static build w/o gmxapi.
-            # https://manual.gromacs.org/documentation/2022/install-guide/index.html#building-with-cp2k-qm-mm-support
-            self.log.info("Building with CP2K QM/MM.")
-            self.cfg['build_shared_libs'] = False
-            self.libext = 'a'
-            cp2k_version = get_software_version('CP2K')
-            self.cfg.update('configopts', "-DGMX_INSTALL_NBLIB_API=OFF")
-            self.cfg.update('configopts', "-DGMXAPI=OFF")
-            self.cfg.update('configopts', "-DGMX_CP2K=ON")
-            # Ensure that the GROMACS log files report that CP2K was enabled and which version was used.
-            self.cfg.update('configopts', "-DGMX_VERSION_STRING_OF_FORK=CP2K-{:}".format(cp2k_version))
-            self.cfg.update('configopts', "-DCP2K_DIR=%s/lib64" % cp2k_root)
-            cp2k_linker_flags = [
-                # Need MPI linker flags b/c libcp2k.a is compiled with mpifort.
-                # These are for OpenMPI (mpifort --showme).
-                "-lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh",
-                "-L%s/lib/exts/dbcsr" % cp2k_root,
-                # get depenencies for libcp2k.a:
-                "$(pkg-config --libs-only-l libcp2k)"
-            ]
-            if get_software_root('Libint'):
-                # for some reason libint2 is not discovered by pkg-config:
-                cp2k_linker_flags.append('-lint2')
-            self.cfg.update('configopts', '-DCP2K_LINKER_FLAGS="%s"' % " ".join(cp2k_linker_flags))
 
         # PLUMED detection
         # enable PLUMED support if PLUMED is listed as a dependency
@@ -395,7 +322,7 @@ class EB_GROMACS(CMakeMake):
                               mpiexec_path, self.cfg.get('mpiexec_numproc_flag'),
                               mpi_numprocs)
 
-            elif gromacs_version >= '2019' and self.cfg['build_shared_libs']:
+            if gromacs_version >= '2019':
                 # Building the gmxapi interface requires shared libraries,
                 # this is handled in the class initialisation so --module-only works
                 self.cfg.update('configopts', "-DGMXAPI=ON")
@@ -576,10 +503,8 @@ class EB_GROMACS(CMakeMake):
                     copy_dir('lib', libdir)
 
                 orig_runtest = self.cfg['runtest']
-
-                if LooseVersion(self.version) < LooseVersion('2019'):
-                    # make very sure OMP_NUM_THREADS is set to 1, to avoid hanging GROMACS regression test
-                    env.setvar('OMP_NUM_THREADS', '1')
+                # make very sure OMP_NUM_THREADS is set to 1, to avoid hanging GROMACS regression test
+                env.setvar('OMP_NUM_THREADS', '1')
 
                 if self.cfg['runtest'] is None or isinstance(self.cfg['runtest'], bool):
                     self.cfg['runtest'] = 'check'
@@ -667,14 +592,6 @@ class EB_GROMACS(CMakeMake):
             subdir = lib_relpath.split(os.sep)[0:-1]
             lib_subdirs.append(os.path.join(*subdir))
 
-        if not self.cfg['build_shared_libs'] and len(lib_subdirs) == 0:
-            for libdir in ['lib', 'lib64']:
-                if os.path.exists(os.path.join(self.installdir, libdir)):
-                    msg = "Found lib subdirectory: %s but it doesn't contain: %s.\n"
-                    msg += "As building shared libs was disabled, this is probably okay."
-                    lib_subdirs = [libdir]
-                    self.log.info(msg, libdir, libname)
-
         if len(lib_subdirs) == 0:
             raise EasyBuildError(f"Failed to determine sub-directory with {libname} in {self.installdir}")
 
@@ -738,12 +655,8 @@ class EB_GROMACS(CMakeMake):
             else:
                 mpisuff = '_mpi'
 
-            if self.cfg['mpi_only']:
-                mpi_bins = [binary + mpisuff for binary in mpi_bins]
-                mpi_libnames = [libname + mpisuff for libname in mpi_libnames]
-            else:
-                mpi_bins.extend([binary + mpisuff for binary in mpi_bins])
-                mpi_libnames.extend([libname + mpisuff for libname in mpi_libnames])
+            mpi_bins.extend([binary + mpisuff for binary in mpi_bins])
+            mpi_libnames.extend([libname + mpisuff for libname in mpi_libnames])
 
         suffixes = ['']
 
@@ -773,21 +686,10 @@ class EB_GROMACS(CMakeMake):
             dirs.extend([os.path.join(ld, 'pkgconfig') for ld in self.lib_subdirs])
 
         custom_paths = {
-            'files': [os.path.join('bin', b) for b in bin_files],
+            'files': [os.path.join('bin', b) for b in bin_files] +
+            [os.path.join(libdir, lib) for libdir in self.lib_subdirs for lib in lib_files],
             'dirs': dirs,
         }
-
-        if self.cfg['build_shared_libs'] or LooseVersion(self.version) <= LooseVersion('2022'):
-            # only if any libs are actually built
-            if not self.lib_subdir:
-                self.lib_subdir = self.get_lib_subdir()
-
-            # pkgconfig dir not available for earlier versions, exact version to use here is unclear
-            if LooseVersion(self.version) >= LooseVersion('4.6'):
-                custom_paths['dirs'].append(os.path.join(self.lib_subdir, 'pkgconfig'))
-
-            custom_paths['files'] = custom_paths['files'] + [os.path.join(self.lib_subdir, lib) for lib in lib_files]
-
         super().sanity_check_step(custom_paths=custom_paths)
 
     def run_all_steps(self, *args, **kwargs):
@@ -867,12 +769,9 @@ class EB_GROMACS(CMakeMake):
         if precisions == []:
             raise EasyBuildError("No precision selected. At least one of single/double_precision must be unset or True")
 
-        if self.cfg['mpi_only']:
-            mpitypes = ['mpi']
-        else:
-            mpitypes = ['nompi']
-            if self.toolchain.options.get('usempi', None):
-                mpitypes.append('mpi')
+        mpitypes = ['nompi']
+        if self.toolchain.options.get('usempi', None):
+            mpitypes.append('mpi')
 
         # We need to count the number of variations to build.
         versions_built = []
