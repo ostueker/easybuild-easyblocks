@@ -44,7 +44,7 @@ from sysconfig import get_config_vars
 import easybuild.tools.environment as env
 from easybuild.base import fancylogger
 from easybuild.easyblocks.python import EXTS_FILTER_DUMMY_PACKAGES, EXTS_FILTER_PYTHON_PACKAGES, set_py_env_vars
-from easybuild.easyblocks.python import det_installed_python_packages, det_pip_version, run_pip_check
+from easybuild.easyblocks.python import det_installed_python_packages, det_pip_version, run_pip_check, run_pip_list
 from easybuild.framework.easyconfig import CUSTOM
 from easybuild.framework.easyconfig.default import DEFAULT_CONFIG
 from easybuild.framework.easyconfig.templates import PYPI_SOURCE
@@ -1317,7 +1317,7 @@ class PythonPackage(ExtensionEasyBlock):
 
         if self.multi_python:
             # when installing for multiple Python versions, we must use 'python', not a full-path 'python' command!
-            pip_check_python_cmd = 'python'
+            python_cmd = 'python'
             if 'exts_filter' not in kwargs:
                 kwargs.update({'exts_filter': exts_sanity_filter})
         else:
@@ -1325,7 +1325,7 @@ class PythonPackage(ExtensionEasyBlock):
             # (which is required especially when installing with system Python)
             if self.python_cmd is None:
                 self.prepare_python()
-            pip_check_python_cmd = self.python_cmd
+            python_cmd = self.python_cmd
             if 'exts_filter' not in kwargs:
                 exts_filter = (exts_sanity_filter[0].replace('python', self.python_cmd), exts_sanity_filter[1])
                 kwargs.update({'exts_filter': exts_filter})
@@ -1361,12 +1361,9 @@ class PythonPackage(ExtensionEasyBlock):
             run_pip_check(python_cmd=python_cmd)
 
             unversioned_packages = self.cfg.get('unversioned_packages', [])
-<<<<<<< HEAD
-            run_pip_list([(self.name, self.version)], python_cmd=python_cmd, unversioned_packages=unversioned_packages,
+            pkgs = [(self.name, self.version)]
+            run_pip_list(pkgs, python_cmd=python_cmd, unversioned_packages=unversioned_packages,
                          check_names_versions=params['sanity_check_pip_list'])
-=======
-            run_pip_check(python_cmd=pip_check_python_cmd, unversioned_packages=unversioned_packages)
->>>>>>> 8946b3a7b (add dummy_package extra option to PythonPackage)
 
         # ExtensionEasyBlock handles loading modules correctly for multi_deps, so we clean up fake_mod_data
         # and let ExtensionEasyBlock do its job
