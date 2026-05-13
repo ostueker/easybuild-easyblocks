@@ -27,7 +27,7 @@ from easybuild.tools.config import build_option
 from easybuild.tools.filetools import apply_regex_substitutions, change_dir, extract_file
 from easybuild.tools.modules import get_software_root, get_software_version
 from easybuild.tools.run import run_shell_cmd
-from easybuild.tools.systemtools import POWER, X86_64, get_cpu_architecture
+from easybuild.tools.systemtools import POWER, X86_64, AARCH64, get_cpu_architecture
 
 
 class EB_NAMD(MakeCp):
@@ -71,6 +71,10 @@ class EB_NAMD(MakeCp):
                 basearch = 'Linux-x86_64'
             elif arch == POWER:
                 basearch = 'Linux-POWER'
+            elif arch == AARCH64:
+                basearch = 'Linux-ARM64'
+            else:
+                raise EasyBuildError("The NAMD easyblock does not currently support architecture %s", arch)
 
             self.cfg['namd_basearch'] = basearch
             self.log.info("Derived value for 'namd_basearch': %s", self.cfg['namd_basearch'])
@@ -118,15 +122,15 @@ class EB_NAMD(MakeCp):
             charm_arch_comps = {
                 toolchain.GCC: 'gcc',
                 toolchain.INTELCOMP: 'icc',
+                toolchain.LLVM: 'clang',
+                toolchain.ROCM: 'clang',
             }
-            charm_arch_comp = charm_arch_comps.get(comp_fam, None)
+            charm_arch_comp = charm_arch_comps.get(comp_fam, '')
         namd_comps = {
-            toolchain.GCC: 'g++',
             toolchain.INTELCOMP: 'icc',
         }
-        namd_comp = namd_comps.get(comp_fam, None)
-        if charm_arch_comp is None or namd_comp is None:
-            raise EasyBuildError("Unknown compiler family, can't complete Charm++/NAMD target architecture.")
+        # g++ works as generic comp and --cc will override CXX=g++ in any case
+        namd_comp = namd_comps.get(comp_fam, 'g++')
 
         # NOTE: important to add smp BEFORE the compiler
         # charm arch style is: mpi-linux-x86_64-smp-mpicxx
@@ -155,14 +159,14 @@ class EB_NAMD(MakeCp):
 
         # compiler (options)
         self.cfg.update('namd_cfg_opts', '--cc "%s" --cc-opts "%s"' % (os.environ['CC'], os.environ['CFLAGS']))
-        cxxflags = os.environ['CXXFLAGS']
+        cxx = os.environ['CXX']
         if LooseVersion(self.version) >= LooseVersion('2.12'):
-            cxxflags += ' --std=c++11'
-
+            cxx += ' -std=c++11'
+        cxxflags = os.environ['CXXFLAGS']
         if comp_fam == "Intel" :
-            self.cfg.update('namd_cfg_opts', '--cxx "%s" --cxx-opts "%s" --cxx-noalias-opts "%s -fno-alias"' % (os.environ['CXX'], cxxflags, cxxflags))
+            self.cfg.update('namd_cfg_opts', f'--cxx "{cxx}" --cxx-opts "{cxxflags}" --cxx-noalias-opts "{cxxflags} -fno-alias"')
         else:
-            self.cfg.update('namd_cfg_opts', '--cxx "%s" --cxx-opts "%s"' % (os.environ['CXX'], cxxflags))
+            self.cfg.update('namd_cfg_opts', f'--cxx "{cxx}" --cxx-opts "{cxxflags}"')
 
         # NAMD dependencies: CUDA, TCL, FFTW
         cuda = get_software_root('CUDA')
