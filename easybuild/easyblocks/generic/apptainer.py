@@ -38,7 +38,7 @@ from easybuild.tools.build_log import EasyBuildError
 from easybuild.tools.filetools import apply_regex_substitutions
 from easybuild.tools.filetools import copy_file, mkdir
 
-DEFAULT_INSTALL_CMD = "/bin/sudo -iu containeruser build_container_image.sh -t sandbox "
+DEFAULT_INSTALL_CMD = "apptainer build --sandbox --force "
 class Apptainer(Binary):
     """
     Support for installing software via an Apptainer container
@@ -58,7 +58,7 @@ class Apptainer(Binary):
     def __init__(self, *args, **kwargs):
         """Initialize custom class variables."""
         super(Apptainer, self).__init__(*args, **kwargs)
-        self.cfg['install_cmd'] = DEFAULT_INSTALL_CMD
+        self.cfg['install_cmd'] = DEFAULT_INSTALL_CMD + self.cfg['container_path']
         # do not prepend anything to path like binary does
         self.cfg['prepend_to_path'] = None
 
@@ -96,19 +96,19 @@ class Apptainer(Binary):
         res = super(Apptainer, self).make_module_step(fake=fake)
 
 
-        # create a secondary module
+        # create a secondary module (XXX disabled)
         modname = os.path.basename(os.path.dirname(self.mod_filepath))
         modversion = os.path.basename(self.mod_filepath)
 
         secondary_module_path = os.path.join(os.path.dirname(os.path.dirname(self.cfg['container_path'])), 'modules', modname)
         # create module directory if it does not exist
-        mkdir(secondary_module_path)
-        copy_file(self.mod_filepath, secondary_module_path)
+        #mkdir(secondary_module_path)
+        #copy_file(self.mod_filepath, secondary_module_path)
         secondary_module = os.path.join(secondary_module_path, modversion)
 
         # remove depends_on("apptainer.*") for this module
         regex_subs = [(r'depends_on\("apptainer.*"\)', r'')]
-        apply_regex_substitutions(secondary_module, regex_subs)
+        #apply_regex_substitutions(secondary_module, regex_subs)
 
         # Reset installdir to EasyBuild values
         self.installdir = self.orig_installdir
