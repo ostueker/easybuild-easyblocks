@@ -29,14 +29,16 @@
 General EasyBuild support for software, using containerized applications
 
 @author: Maxime Boissonneault (Universite Laval, Calcul Quebec, Digital Research Alliance of Canada)
+@author: Bart Oldeman (McGill University, Calcul Quebec, Digital Research Alliance of Canada)
 """
 import os
 import re
+import shutil
 from easybuild.easyblocks.generic.binary import Binary
 from easybuild.framework.easyconfig import CUSTOM
 from easybuild.tools.build_log import EasyBuildError
 from easybuild.tools.filetools import apply_regex_substitutions
-from easybuild.tools.filetools import copy_file, mkdir
+from easybuild.tools.filetools import clean_dir, copy_file, mkdir
 
 DEFAULT_INSTALL_CMD = "apptainer build --sandbox --force "
 class Apptainer(Binary):
@@ -58,6 +60,18 @@ class Apptainer(Binary):
     def __init__(self, *args, **kwargs):
         """Initialize custom class variables."""
         super(Apptainer, self).__init__(*args, **kwargs)
+        if not self.cfg['container_path']:
+            # Use location set via MNS if an explicit container_path
+            # is not specified.
+            # We need to do a staged installation (almost but not exactly
+            # like the Binary easyblock can do) since Apptainer
+            # needs to write to a sibling directory of installdir which
+            # is problematic with rpath
+            self.actual_installdir = self.installdir
+            self.installdir = os.path.join(self.builddir, 'staged')
+            mkdir(self.installdir, parents=True)
+            self.log.info("Performing staged installation via %s" % self.installdir)
+            self.cfg['container_path'] = self.installdir
         self.cfg['install_cmd'] = DEFAULT_INSTALL_CMD + self.cfg['container_path']
         # do not prepend anything to path like binary does
         self.cfg['prepend_to_path'] = None
@@ -65,6 +79,16 @@ class Apptainer(Binary):
     def extract_step(self):
         """No extract step"""
         pass
+
+    def post_processing_step(self):
+        """Copy installation to actual installation directory in case of a staged installation."""
+        if self.actual_installdir is not None:
+            staged_installdir = self.installdir
+            self.installdir = self.actual_installdir
+            clean_dir(self.installdir)
+            # use shutil directly as EB's copy_dir has a few issues with symlinks
+            shutil.copytree(staged_installdir, self.installdir, dirs_exist_ok=True, symlinks=True)
+        super(Apptainer, self).post_processing_step()
 
     def make_module_req(self):
         """
