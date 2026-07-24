@@ -79,6 +79,7 @@ class EB_GROMACS(CMakeMake):
                        "'native' enables native PLUMED support for GROMACS 2025 and newer." +
                        "'patch' (or True) applies PLUMED patches." +
                        "False disables PLUMED support.", CUSTOM],
+            'cp2k': [None, "Build with CP2K QM/MM. None is auto-detect. True or False forces behaviour.", CUSTOM],
         })
         return extra_vars
 
@@ -218,6 +219,77 @@ class EB_GROMACS(CMakeMake):
                 # explicitly disable GPU support if CUDA is not available,
                 # to avoid that GROMACS finds and uses a system-wide CUDA compiler
                 self.cfg.update('configopts', "-DGMX_GPU=OFF")
+
+        # CP2K detection
+        # enable CP2K support if CP2K is listed as a dependency
+        # and CP2K support is either explicitly enabled (cp2k = True) or unspecified ('cp2k' not defined)
+        cp2k_root = get_software_root('CP2K')
+        if self.cfg['cp2k'] and not cp2k_root:
+            msg = "CP2K support has been requested but CP2K is not listed as a dependency."
+            raise EasyBuildError(msg)
+        elif cp2k_root and self.cfg['cp2k'] is False:
+            self.log.info('CP2K was found, but compilation without CP2K has been requested.')
+            cp2k_root = None
+
+        if cp2k_root:
+            if LooseVersion(self.version) < LooseVersion('2022'):
+                msg = 'CP2K support is only available in GROMACS 2022 and newer.'
+                raise EasyBuildError(msg)
+
+            cp2k_version = get_software_version('CP2K')
+            if LooseVersion(cp2k_version) < LooseVersion('8.1'):
+                msg = 'CP2K support in GROMACS requires CP2K version 8.1 or higher.'
+                raise EasyBuildError(msg)
+
+            if not self.cfg['mpi_only']:
+                msg = "GROMACS with CP2K support needs to be built with 'mpi_only = True'"
+                raise EasyBuildError(msg)
+
+            if not os.path.exists(os.path.join(cp2k_root, 'lib', 'libcp2k.a')):
+                msg = 'CP2K needs to be compiled with "library = True".'
+                raise EasyBuildError(msg)
+            #if not os.path.exists(os.path.join(cp2k_root, 'lib', 'pkgconfig', 'libcp2k.pc')):
+            #    msg = "pkgconf is required as a build-dependency for CP2K"
+            #    raise EasyBuildError(msg)
+            if not (get_software_root('pkgconf') or get_software_root('pkg-config')):
+                msg = "Either pkgconf or pkg-config is required as a build-dependency for building GROMACS-CP2K"
+                raise EasyBuildError(msg)
+
+            self.log.info('CP2K support has been enabled.')
+            # Building with CP2K requires static build w/o gmxapi.
+            # https://manual.gromacs.org/documentation/2022/install-guide/index.html#building-with-cp2k-qm-mm-support
+            self.log.info("Building with CP2K QM/MM.")
+            self.cfg['build_shared_libs'] = False
+            self.libext = 'a'
+
+            self.cfg.update('configopts', "-DGMX_INSTALL_NBLIB_API=OFF")
+            self.cfg.update('configopts', "-DGMXAPI=OFF")
+            self.cfg.update('configopts', "-DGMX_CP2K=ON")
+            # Ensure that the GROMACS log files report that CP2K was enabled and which version was used.
+            self.cfg.update('configopts', "-DGMX_VERSION_STRING_OF_FORK=CP2K-{:}".format(cp2k_version))
+            self.cfg.update('configopts', "-DCP2K_DIR=%s" % os.path.join(cp2k_root, 'lib'))
+
+            cp2k_linker_flags = []
+            # Need MPI linker flags b/c libcp2k.a is compiled with mpifort.
+            # Unfortunately they are not listed in CP2K's $EBROOTCP2K/lib/pkgconfig/libcp2k.pc
+            if get_software_root('OpenMPI'):
+                # for OpenMPI (mpifort --showme).
+                cp2k_linker_flags.append("-lmpi_usempif08 -lmpi_usempi_ignore_tkr -lmpi_mpifh")
+            elif get_software_root('IntelMPI'):
+                # for Intel MPI (mpiifort -show)
+                cp2k_linker_flags.append("-lmpifort")
+            else:
+                msg = "Currently OpenMPI and IntelMPI are the only supported MPI implementations."
+                raise EasyBuildError(msg)
+            cp2k_linker_flags += [
+                "-L%s" % os.path.join(cp2k_root, 'lib', 'exts', 'dbcsr'),
+                # get dependencies for libcp2k.a:
+                "$(pkg-config --libs-only-l libcp2k)"
+            ]
+            if get_software_root('Libint'):
+                # for some reason libint2 is not discovered by pkg-config:
+                cp2k_linker_flags.append('-lint2')
+            self.cfg.update('configopts', '-DCP2K_LINKER_FLAGS="%s"' % " ".join(cp2k_linker_flags))
 
         # PLUMED detection
         # enable PLUMED support if PLUMED is listed as a dependency.
@@ -366,7 +438,7 @@ class EB_GROMACS(CMakeMake):
                               mpiexec_path, self.cfg.get('mpiexec_numproc_flag'),
                               mpi_numprocs)
 
-            if gromacs_version >= '2019':
+            if gromacs_version >= '2019' and self.cfg['build_shared_libs']:
                 # Building the gmxapi interface requires shared libraries,
                 # this is handled in the class initialisation so --module-only works
                 self.cfg.update('configopts', "-DGMXAPI=ON")
@@ -615,6 +687,9 @@ class EB_GROMACS(CMakeMake):
                 if build_option('force') and build_option('module_only'):
                     self.log.info(f"No sub-directory with GROMACS libraries found in installation: {error}")
                     self.log.info("You are forcing module creation for a non-existent installation!")
+                elif not self.cfg['build_shared_libs']:
+                    self.log.info(f"No sub-directory with GROMACS libraries found in installation: {error}")
+                    self.log.info("This is expected when only building static executables.")
                 else:
                     raise error
 
