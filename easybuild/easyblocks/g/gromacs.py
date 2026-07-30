@@ -79,7 +79,7 @@ class EB_GROMACS(CMakeMake):
                        "'native' enables native PLUMED support for GROMACS 2025 and newer." +
                        "'patch' (or True) applies PLUMED patches." +
                        "False disables PLUMED support.", CUSTOM],
-            'cp2k': [None, "Build with CP2K QM/MM. None is auto-detect. True or False forces behaviour.", CUSTOM],
+            'cp2k': [False, "Build with CP2K QM/MM. Forces a static build and implies 'mpi_only'", CUSTOM],
         })
         return extra_vars
 
@@ -93,8 +93,13 @@ class EB_GROMACS(CMakeMake):
         self.cfg['build_shared_libs'] = self.cfg.get('build_shared_libs', False)
 
         if LooseVersion(self.version) >= LooseVersion('2019'):
-            # Building the gmxapi interface requires shared libraries
-            self.cfg['build_shared_libs'] = True
+            if LooseVersion(self.version) >= LooseVersion('2022') and self.cfg['cp2k']:
+                # Building with CP2K requires static build w/o gmxapi.
+                # https://manual.gromacs.org/documentation/2022/install-guide/index.html#building-with-cp2k-qm-mm-support
+                self.cfg['build_shared_libs'] = False
+            else:
+                # Building the gmxapi interface requires shared libraries
+                self.cfg['build_shared_libs'] = True
 
         if self.cfg['build_shared_libs']:
             self.libext = get_shared_lib_ext()
@@ -238,15 +243,12 @@ class EB_GROMACS(CMakeMake):
                 self.cfg.update('configopts', "-DGMX_GPU=OFF")
 
         # CP2K detection
-        # enable CP2K support if CP2K is listed as a dependency
-        # and CP2K support is either explicitly enabled (cp2k = True) or unspecified ('cp2k' not defined)
+        # enable CP2K support if explicitly requested (cp2k = True)
+        # and check whether other requirements are met.
         cp2k_root = get_software_root('CP2K')
         if self.cfg['cp2k'] and not cp2k_root:
             msg = "CP2K support has been requested but CP2K is not listed as a dependency."
             raise EasyBuildError(msg)
-        elif cp2k_root and self.cfg['cp2k'] is False:
-            self.log.info('CP2K was found, but compilation without CP2K has been requested.')
-            cp2k_root = None
 
         if cp2k_root:
             if LooseVersion(self.version) < LooseVersion('2022'):
@@ -262,12 +264,9 @@ class EB_GROMACS(CMakeMake):
                 msg = "GROMACS with CP2K support needs to be built with 'mpi_only = True'"
                 raise EasyBuildError(msg)
 
-            if not os.path.exists(os.path.join(cp2k_root, 'lib', 'libcp2k.a')):
-                msg = 'CP2K needs to be compiled with "library = True".'
+            if not run_shell_cmd('pkg-config --exists libcp2k').exit_code == 0:
+                msg = "CP2K needs to be compiled with 'library = True'."
                 raise EasyBuildError(msg)
-            #if not os.path.exists(os.path.join(cp2k_root, 'lib', 'pkgconfig', 'libcp2k.pc')):
-            #    msg = "pkgconf is required as a build-dependency for CP2K"
-            #    raise EasyBuildError(msg)
             if not (get_software_root('pkgconf') or get_software_root('pkg-config')):
                 msg = "Either pkgconf or pkg-config is required as a build-dependency for building GROMACS-CP2K"
                 raise EasyBuildError(msg)
@@ -714,8 +713,12 @@ class EB_GROMACS(CMakeMake):
                     self.log.info(f"No sub-directory with GROMACS libraries found in installation: {error}")
                     self.log.info("You are forcing module creation for a non-existent installation!")
                 elif not self.cfg['build_shared_libs']:
-                    self.log.info(f"No sub-directory with GROMACS libraries found in installation: {error}")
-                    self.log.info("This is expected when only building static executables.")
+                    msg = ' '.join([
+                        "GROMACS is built with 'build_shared_libs = False',"
+                        "therefore it is expected to not have any sub-directory for libraries."
+                    ])
+                    self.log.info(msg)
+                    pass
                 else:
                     raise error
 
