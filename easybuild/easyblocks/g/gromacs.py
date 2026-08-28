@@ -233,7 +233,7 @@ class EB_GROMACS(CMakeMake):
             msg = "CP2K support has been requested but CP2K is not listed as a dependency."
             raise EasyBuildError(msg)
 
-        if cp2k_root:
+        if self.cfg['cp2k']:
             if LooseVersion(self.version) < LooseVersion('2022'):
                 msg = 'CP2K support is only available in GROMACS 2022 and newer.'
                 raise EasyBuildError(msg)
