@@ -286,9 +286,6 @@ class EB_GROMACS(CMakeMake):
                 # get dependencies for libcp2k.a:
                 "$(pkgconf --libs libcp2k)"
             ]
-            #if get_software_root('Libint'):
-            #    # for some reason libint2 is not discovered by pkgconf:
-            #    cp2k_linker_flags.append('-lint2')
             self.cfg.update('configopts', '-DCP2K_LINKER_FLAGS="%s"' % " ".join(cp2k_linker_flags))
 
         # PLUMED detection
