@@ -688,6 +688,8 @@ class EB_GROMACS(CMakeMake):
                     self.log.info(f"No sub-directory with GROMACS libraries found in installation: {error}")
                     self.log.info("You are forcing module creation for a non-existent installation!")
                 elif not self.cfg['build_shared_libs']:
+                    # If built statically (e.g. with build_shared_libs = False), the lib directory 
+                    # is not created. Instead of raining an error, we just print an info line.
                     msg = ' '.join([
                         "GROMACS is built with 'build_shared_libs = False',"
                         "therefore it is expected to not have any sub-directory for libraries."
