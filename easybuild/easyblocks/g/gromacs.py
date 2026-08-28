@@ -264,11 +264,11 @@ class EB_GROMACS(CMakeMake):
                 msg = "GROMACS with CP2K support needs to be built with 'mpi_only = True'"
                 raise EasyBuildError(msg)
 
-            if not run_shell_cmd('pkg-config --exists libcp2k').exit_code == 0:
+            if not run_shell_cmd('pkgconf --exists libcp2k').exit_code == 0:
                 msg = "CP2K needs to be compiled with 'library = True'."
                 raise EasyBuildError(msg)
-            if not (get_software_root('pkgconf') or get_software_root('pkg-config')):
-                msg = "Either pkgconf or pkg-config is required as a build-dependency for building GROMACS-CP2K"
+            if not get_software_root('pkgconf'):
+                msg = "pkgconf is required as a build-dependency for building GROMACS-CP2K"
                 raise EasyBuildError(msg)
 
             self.log.info('CP2K support has been enabled.')
@@ -300,11 +300,11 @@ class EB_GROMACS(CMakeMake):
             cp2k_linker_flags += [
                 "-L%s" % os.path.join(cp2k_root, 'lib', 'exts', 'dbcsr'),
                 # get dependencies for libcp2k.a:
-                "$(pkg-config --libs-only-l libcp2k)"
+                "$(pkgconf --libs libcp2k)"
             ]
-            if get_software_root('Libint'):
-                # for some reason libint2 is not discovered by pkg-config:
-                cp2k_linker_flags.append('-lint2')
+            #if get_software_root('Libint'):
+            #    # for some reason libint2 is not discovered by pkgconf:
+            #    cp2k_linker_flags.append('-lint2')
             self.cfg.update('configopts', '-DCP2K_LINKER_FLAGS="%s"' % " ".join(cp2k_linker_flags))
 
         # PLUMED detection
