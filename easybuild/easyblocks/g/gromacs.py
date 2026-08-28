@@ -245,14 +245,14 @@ class EB_GROMACS(CMakeMake):
         # CP2K detection
         # enable CP2K support if explicitly requested (cp2k = True)
         # and check whether other requirements are met.
-        cp2k_root = get_software_root('CP2K')
-        if self.cfg['cp2k'] and not cp2k_root:
-            msg = "CP2K support has been requested but CP2K is not listed as a dependency."
-            raise EasyBuildError(msg)
-
         if self.cfg['cp2k']:
             if LooseVersion(self.version) < LooseVersion('2022'):
                 msg = 'CP2K support is only available in GROMACS 2022 and newer.'
+                raise EasyBuildError(msg)
+
+            cp2k_root = get_software_root('CP2K')
+            if not cp2k_root:
+                msg = "CP2K support has been requested but CP2K is not listed as a dependency."
                 raise EasyBuildError(msg)
 
             cp2k_version = get_software_version('CP2K')
@@ -264,11 +264,12 @@ class EB_GROMACS(CMakeMake):
                 msg = "GROMACS with CP2K support needs to be built with 'mpi_only = True'"
                 raise EasyBuildError(msg)
 
-            if not run_shell_cmd('pkgconf --exists libcp2k').exit_code == 0:
-                msg = "CP2K needs to be compiled with 'library = True'."
-                raise EasyBuildError(msg)
             if not get_software_root('pkgconf'):
                 msg = "pkgconf is required as a build-dependency for building GROMACS-CP2K"
+                raise EasyBuildError(msg)
+
+            if not run_shell_cmd('pkgconf --exists libcp2k').exit_code == 0:
+                msg = "CP2K needs to be compiled with 'library = True'."
                 raise EasyBuildError(msg)
 
             self.log.info('CP2K support has been enabled.')
